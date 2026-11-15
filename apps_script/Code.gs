@@ -154,3 +154,11 @@ function myAddress_() {
   const m = from.match(/<([^>]+)>/);
   return (m ? m[1] : from).trim();
 }
+
+/**
+ * Run this once from the editor (pick "authorize" next to Debug, then Run)
+ * to approve Gmail access. The web app can't show Google's approval screen itself.
+ */
+function authorize() {
+  GmailApp.getInboxUnreadCount();
+}

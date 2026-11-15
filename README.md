@@ -36,6 +36,7 @@ Gmail ──────────┴─► classify email ─┘   (in your S
 3. On the `SECRET` line, replace `PASTE-A-LONG-RANDOM-SECRET-HERE` with a long random password (mash the keyboard; 30+ characters). Save (⌘S).
 4. **Deploy → New deployment →** gear icon **→ Web app**. Set **Execute as: Me** and **Who has access: Anyone**. Click **Deploy**.
 5. Google asks you to authorize: pick your account → **Advanced → Go to (project) (unsafe) → Allow**. This is your own script, so the "unsafe" warning just means Google hasn't reviewed it.
+   Then, in the editor's function dropdown (next to **Debug**), pick **`authorize`** and click **▶ Run** to approve Gmail access the same way. The web app can't show that prompt on its own.
 6. Copy the **Web app URL** (ends in `/exec`).
 
 > "Anyone" only means GitHub can reach the URL without a Google login. Every request must include your secret, or the script refuses it.
