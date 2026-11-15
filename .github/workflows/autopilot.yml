@@ -1,0 +1,57 @@
+name: Job Autopilot
+
+on:
+  schedule:
+    # Every 2 hours (UTC). The digest goes out on the first run after digest_hour_et.
+    - cron: "17 */2 * * *"
+  workflow_dispatch:
+    inputs:
+      command:
+        description: "What to run"
+        type: choice
+        options: [all, jobs, emails, digest, check]
+        default: all
+      force:
+        description: "Send the digest even if already sent today"
+        type: boolean
+        default: false
+  push:
+    paths: ["jobpilot/**", "tests/**", "run.py", "requirements.txt"]
+
+concurrency:
+  group: autopilot
+  cancel-in-progress: false
+
+jobs:
+  test:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - run: pip install -r requirements.txt pytest
+      - run: python -m pytest tests -q
+
+  run:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - run: pip install -r requirements.txt
+      - name: Run autopilot
+        env:
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          ADZUNA_APP_ID: ${{ secrets.ADZUNA_APP_ID }}
+          ADZUNA_APP_KEY: ${{ secrets.ADZUNA_APP_KEY }}
+        run: |
+          CMD="${{ github.event.inputs.command || 'all' }}"
+          FORCE="${{ github.event.inputs.force == 'true' && '--force' || '' }}"
+          python run.py $CMD $FORCE

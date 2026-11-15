@@ -1,0 +1,57 @@
+# ---------------------------------------------------------------------------
+# Job Autopilot settings
+# You can edit these here, OR in the "Settings" tab of your Google Sheet.
+# Anything filled in on the Sheet wins, so you can change your search from your
+# phone without touching code. Lists use commas on the Sheet ("Boston, Remote").
+# ---------------------------------------------------------------------------
+
+search:
+  # Job titles to look for. A job matches if its title contains any of these.
+  roles: ["Data Engineer", "Analytics Engineer", "Data Scientist"]
+  # Places you'd work. "Remote" matches remote postings anywhere in the US.
+  locations: ["Boston", "New York", "Remote"]
+  # Skip titles containing any of these words.
+  exclude_titles: ["Senior Staff", "Principal", "Director", "Manager", "Intern"]
+  # Bonus points when the posting mentions these (title or description).
+  boost_keywords: ["Python", "SQL", "Azure", "Databricks", "Spark", "automation", "Power BI"]
+  # Only look at jobs posted in the last N days.
+  max_age_days: 7
+  # Score (0-100) needed to send a phone alert right away. Everything above
+  # min_score still goes in the Sheet and the daily digest.
+  alert_score: 75
+  min_score: 40
+
+# Company career boards to watch directly (fast, no API key needed).
+# Find a company's board token in its careers URL, e.g.
+#   boards.greenhouse.io/stripe        -> greenhouse: stripe
+#   jobs.lever.co/palantir             -> lever: palantir
+#   jobs.ashbyhq.com/ramp              -> ashby: ramp
+# A token that doesn't exist is skipped and reported in the run log.
+companies:
+  greenhouse: ["stripe", "robinhood", "datadog"]
+  lever: ["palantir"]
+  ashby: ["ramp"]
+
+# Broad search across thousands of companies. Optional: needs a free Adzuna key
+# (developer.adzuna.com), stored as GitHub secrets ADZUNA_APP_ID / ADZUNA_APP_KEY.
+adzuna:
+  enabled: true
+  country: us
+  results_per_query: 50
+
+tracker:
+  # Gmail search used to find application emails (Gmail search syntax).
+  gmail_query: >-
+    newer_than:3d -category:promotions
+    (application OR applying OR applied OR interview OR recruiter OR candidacy
+     OR "next steps" OR assessment OR offer OR position OR opportunity)
+  # Remind me to follow up if an application hasn't changed in this many days.
+  follow_up_days: 10
+
+notify:
+  # Phone push via the free ntfy app. Pick a long, unguessable topic name and
+  # subscribe to it in the app. Stored as the GitHub secret NTFY_TOPIC.
+  push: true
+  # Daily summary email to yourself (sent from your own Gmail).
+  digest: true
+  digest_hour_et: 8
