@@ -12,12 +12,11 @@ Finds jobs that fit you, tracks every application from your Gmail, and tells you
 It runs on GitHub Actions in this **private** repo, so it works while your laptop is off and nobody can see you're looking. It's read-only on your inbox: it never marks emails read, moves them, or deletes them.
 
 ```
-Company boards ─┐                                   ┌─► 📱 push alerts (ntfy)
-Adzuna search ──┼─► score & filter ─┐               │
-                │                   ├─► Google Sheet ┼─► ✉️  morning digest
-Gmail (IMAP) ───┴─► classify email ─┘   (Jobs,       │
-                                         Applications,└─► follow-up reminders
-                                         Settings)
+Company boards ─┐                                         ┌─► 📱 push alerts (ntfy)
+Adzuna search ──┼─► score & filter ─┐                     │
+                │                   ├─► Apps Script ─► Sheet ┼─► ✉️  morning digest
+Gmail (IMAP) ───┴─► classify email ─┘   (in your Sheet)     │
+                                                            └─► follow-up reminders
 ```
 
 ## Your Google Sheet
@@ -31,11 +30,16 @@ Gmail (IMAP) ───┴─► classify email ─┘   (Jobs,       │
 
 ## Setup (about 15 minutes, one time)
 
-### 1. Google Sheet + service account (for writing the sheet)
-1. Create a blank Google Sheet. Copy its ID from the URL: `docs.google.com/spreadsheets/d/`**`THIS_PART`**`/edit`.
-2. Go to [console.cloud.google.com](https://console.cloud.google.com) → create a project (any name) → **APIs & Services → Library** → enable **Google Sheets API**.
-3. **APIs & Services → Credentials → Create credentials → Service account** (any name) → open it → **Keys → Add key → JSON**. A `.json` file downloads.
-4. Open the JSON, copy the `client_email` value, and **share your Sheet with that email as Editor**.
+### 1. Google Sheet + its script (no Google Cloud needed)
+1. Create a blank Google Sheet (name it e.g. "Job Tracker").
+2. In the Sheet: **Extensions → Apps Script**. Delete the sample code and paste in everything from [`apps_script/Code.gs`](apps_script/Code.gs).
+3. On the `SECRET` line, replace `PASTE-A-LONG-RANDOM-SECRET-HERE` with a long random password (mash the keyboard; 30+ characters). Save (⌘S).
+4. **Deploy → New deployment →** gear icon **→ Web app**. Set **Execute as: Me** and **Who has access: Anyone**. Click **Deploy**.
+5. Google asks you to authorize: pick your account → **Advanced → Go to (project) (unsafe) → Allow**. This is your own script, so the "unsafe" warning just means Google hasn't reviewed it.
+6. Copy the **Web app URL** (ends in `/exec`).
+
+> "Anyone" only means GitHub can reach the URL without a Google login. Every request must include your secret, or the script refuses it.
+> If you change `Code.gs` later, use **Deploy → Manage deployments → Edit → New version** so the URL stays the same.
 
 ### 2. Gmail app password (for reading application emails and sending the digest)
 1. Make sure 2-Step Verification is on: [myaccount.google.com/security](https://myaccount.google.com/security).
@@ -54,8 +58,8 @@ Repo → **Settings → Secrets and variables → Actions → New repository sec
 
 | Secret | Value |
 |---|---|
-| `SHEET_ID` | the ID from step 1.1 |
-| `GOOGLE_SERVICE_ACCOUNT_JSON` | the **entire contents** of the JSON file from step 1.3 |
+| `SHEET_SCRIPT_URL` | the Web app URL from step 1.6 |
+| `SHEET_SCRIPT_SECRET` | the same secret you typed into `Code.gs` |
 | `GMAIL_ADDRESS` | your Gmail address |
 | `GMAIL_APP_PASSWORD` | the 16-character app password |
 | `NTFY_TOPIC` | your topic name |
@@ -86,7 +90,7 @@ Alerts go out at `alert_score` and above; everything at `min_score` and above la
 ```bash
 pip install -r requirements.txt
 python run.py demo          # full run on sample data, no accounts needed → demo_digest.html
-python -m pytest tests -q   # 22 tests
+python -m pytest tests -q   # 23 tests
 python run.py check         # with secrets set as environment variables
 ```
 

@@ -73,13 +73,41 @@ class LocalStore:
         return JsonTable(self, name)
 
 
-# --------------------------------------------------------------- Google Sheet
+# --------------------------------------------------------------- Google Sheet (via Apps Script)
+class BridgeError(RuntimeError):
+    pass
+
+
+class SheetBridge:
+    """Talks to the Apps Script in apps_script/Code.gs, which writes to your Sheet as you.
+    No Google Cloud project or service account needed."""
+
+    def __init__(self, url: str, secret: str, post=None):
+        import requests
+        self.url, self.secret = url, secret
+        self._post = post or (lambda payload: requests.post(url, json=payload, timeout=60))
+
+    def call(self, op: str, **kw) -> dict:
+        r = self._post({"secret": self.secret, "op": op, **kw})
+        try:
+            data = r.json()
+        except ValueError:
+            raise BridgeError("The Sheet script didn't return JSON. Check that SHEET_SCRIPT_URL is the "
+                              "web app URL ending in /exec and that access is set to 'Anyone'.")
+        if data.get("error"):
+            raise BridgeError(f"Sheet script error: {data['error']}")
+        return data
+
+
 class SheetTable(Table):
-    def __init__(self, ws, cols: list[str]):
-        self.ws, self.cols = ws, cols
+    def __init__(self, bridge: SheetBridge, name: str, cols: list[str]):
+        self.bridge, self.name, self.cols = bridge, name, cols
+
+    def raw_rows(self):
+        return self.bridge.call("values", tab=self.name).get("values", [])
 
     def records(self):
-        values = self.ws.get_all_values()
+        values = self.raw_rows()
         if not values:
             return []
         header = values[0]
@@ -87,56 +115,34 @@ class SheetTable(Table):
 
     def append(self, rows):
         if rows:
-            self.ws.append_rows([[r.get(c, "") for c in self.cols] for r in rows],
-                                value_input_option="USER_ENTERED")
+            self.bridge.call("append", tab=self.name,
+                             rows=[[str(r.get(c, "")) for c in self.cols] for r in rows])
 
     def update(self, index, row):
         # +2: 1-based rows and the header row
-        self.ws.update([[row.get(c, "") for c in self.cols]], f"A{index + 2}",
-                       value_input_option="USER_ENTERED")
-
-    def raw_rows(self):
-        return self.ws.get_all_values()
+        self.bridge.call("update", tab=self.name, row=index + 2,
+                         values=[str(row.get(c, "")) for c in self.cols])
 
     def replace_all(self, rows):
-        self.ws.clear()
-        self.ws.update(rows, "A1", value_input_option="USER_ENTERED")
+        self.bridge.call("replace", tab=self.name, rows=[[str(v) for v in r] for r in rows])
 
 
 class SheetStore:
-    def __init__(self, sheet_id: str, service_account_json: str):
-        import gspread
-        from google.oauth2.service_account import Credentials
-
-        creds = Credentials.from_service_account_info(
-            json.loads(service_account_json),
-            scopes=["https://www.googleapis.com/auth/spreadsheets"],
-        )
-        self.book = gspread.authorize(creds).open_by_key(sheet_id)
-        self._ensure_tabs()
-
-    def _ensure_tabs(self):
-        existing = {ws.title: ws for ws in self.book.worksheets()}
-        for name, cols in TABS.items():
-            if name not in existing:
-                ws = self.book.add_worksheet(title=name, rows=1000, cols=len(cols))
-                ws.update([cols], "A1")
-                ws.freeze(rows=1)
-                ws.format("1:1", {"textFormat": {"bold": True}})
-                existing[name] = ws
-            elif not existing[name].row_values(1):
-                existing[name].update([cols], "A1")
-        # drop the default empty "Sheet1" if it's still blank
-        s1 = existing.get("Sheet1")
-        if s1 and not any(s1.get_all_values()):
-            self.book.del_worksheet(s1)
-        self._ws = {n: self.book.worksheet(n) for n in TABS}
+    def __init__(self, url: str, secret: str, post=None):
+        self.bridge = SheetBridge(url, secret, post)
+        self.bridge.call("ensure", tabs=TABS)
 
     def table(self, name: str) -> Table:
-        return SheetTable(self._ws[name], TABS[name])
+        return SheetTable(self.bridge, name, TABS[name])
+
+    def url(self) -> str | None:
+        try:
+            return self.bridge.call("info").get("url")
+        except Exception:
+            return None
 
 
 def open_store(dry_run_path: str | None = None):
     if dry_run_path:
         return LocalStore(Path(dry_run_path))
-    return SheetStore(os.environ["SHEET_ID"], os.environ["GOOGLE_SERVICE_ACCOUNT_JSON"])
+    return SheetStore(os.environ["SHEET_SCRIPT_URL"], os.environ["SHEET_SCRIPT_SECRET"])

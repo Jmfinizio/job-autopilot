@@ -97,3 +97,48 @@ def fake_email_fetch(query, skip_ids):
         if ev:
             out.append(ev)
     return sorted(out, key=lambda e: e.date)
+
+
+class FakeAppsScript:
+    """Behaves like apps_script/Code.gs, in memory, so tests can drive SheetStore."""
+
+    def __init__(self, secret="s3cret"):
+        self.secret, self.sheets, self.calls = secret, {"Sheet1": []}, 0
+
+    class _R:
+        def __init__(self, data):
+            self._d = data
+
+        def json(self):
+            return self._d
+
+    def __call__(self, req):
+        self.calls += 1
+        R = self._R
+        if req.get("secret") != self.secret:
+            return R({"error": "unauthorized"})
+        op, tab = req["op"], req.get("tab")
+        if op == "info":
+            return R({"ok": True, "url": "https://docs.google.com/spreadsheets/d/FAKE", "name": "Job Tracker"})
+        if op == "ensure":
+            for name, cols in req["tabs"].items():
+                if not self.sheets.get(name):
+                    self.sheets[name] = [list(cols)]
+            if self.sheets.get("Sheet1") == []:
+                del self.sheets["Sheet1"]
+            return R({"ok": True})
+        if tab not in self.sheets:
+            return R({"error": f"missing tab {tab}"})
+        sh = self.sheets[tab]
+        if op == "values":
+            return R({"ok": True, "values": [list(r) for r in sh]})
+        if op == "append":
+            sh.extend([str(v) for v in r] for r in req["rows"])
+            return R({"ok": True})
+        if op == "update":
+            sh[req["row"] - 1] = [str(v) for v in req["values"]]
+            return R({"ok": True})
+        if op == "replace":
+            self.sheets[tab] = [[str(v) for v in r] for r in req["rows"]]
+            return R({"ok": True})
+        return R({"error": "unknown op"})

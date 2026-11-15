@@ -24,9 +24,6 @@ ROOT = Path(__file__).resolve().parent
 log = logging.getLogger("autopilot")
 
 
-def sheet_url() -> str | None:
-    sid = os.environ.get("SHEET_ID")
-    return f"https://docs.google.com/spreadsheets/d/{sid}" if sid else None
 
 
 def cmd_check() -> int:
@@ -37,7 +34,7 @@ def cmd_check() -> int:
         print(("  ✓ " if good else "  ✗ ") + msg)
 
     print("Secrets")
-    for k in ("SHEET_ID", "GOOGLE_SERVICE_ACCOUNT_JSON", "GMAIL_ADDRESS", "GMAIL_APP_PASSWORD", "NTFY_TOPIC"):
+    for k in ("SHEET_SCRIPT_URL", "SHEET_SCRIPT_SECRET", "GMAIL_ADDRESS", "GMAIL_APP_PASSWORD", "NTFY_TOPIC"):
         line(bool(os.environ.get(k)), k)
     for k in ("ADZUNA_APP_ID", "ADZUNA_APP_KEY"):
         print(("  ✓ " if os.environ.get(k) else "  · ") + f"{k} (optional, enables broad search)")
@@ -45,9 +42,9 @@ def cmd_check() -> int:
     print("Google Sheet")
     try:
         st = store_mod.open_store()
-        line(True, f"opened sheet and checked tabs: {', '.join(store_mod.TABS)}")
+        line(True, f"connected to '{st.bridge.call('info').get('name')}' and set up tabs: {', '.join(store_mod.TABS)}")
     except Exception as e:
-        line(False, f"{type(e).__name__}: {e}  (did you share the sheet with the service account email?)")
+        line(False, f"{type(e).__name__}: {e}")
 
     print("Gmail")
     try:
@@ -128,7 +125,7 @@ def main(argv: list[str] | None = None) -> int:
             log.exception("email scan failed: %s", e)
     if args.command in ("all", "digest"):
         try:
-            summary["digest"] = tracker.run_digest(st, settings, force=args.force, sheet_url=sheet_url())
+            summary["digest"] = tracker.run_digest(st, settings, force=args.force, sheet_url=st.url())
         except Exception as e:
             failures += 1
             log.exception("digest failed: %s", e)

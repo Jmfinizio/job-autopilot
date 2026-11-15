@@ -44,8 +44,8 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Run autopilot
         env:
-          SHEET_ID: ${{ secrets.SHEET_ID }}
-          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          SHEET_SCRIPT_URL: ${{ secrets.SHEET_SCRIPT_URL }}
+          SHEET_SCRIPT_SECRET: ${{ secrets.SHEET_SCRIPT_SECRET }}
           GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}

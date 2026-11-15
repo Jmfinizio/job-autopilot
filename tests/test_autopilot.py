@@ -151,3 +151,31 @@ def test_digest_once_per_day_and_followups(store):
     assert res["sent"] and res["followups"] == 1  # Stripe applied Nov 3, 10-day reminder
     assert tracker.run_digest(store, settings, send, now=DEMO_NOW + timedelta(hours=2))["sent"] is False
     assert len(sent) == 1 and "4 new" in sent[0]
+
+
+# ---------------------------------------------------------------- Apps Script bridge
+def test_pipeline_through_apps_script_bridge():
+    from jobpilot.store import BridgeError, SheetStore
+    from tests.fakes import FakeAppsScript
+
+    script = FakeAppsScript()
+    with pytest.raises(BridgeError, match="unauthorized"):
+        SheetStore("https://script.google.com/x/exec", "wrong", post=script)
+
+    st = SheetStore("https://script.google.com/x/exec", "s3cret", post=script)
+    assert "Sheet1" not in script.sheets and {"Jobs", "Applications", "Settings", "_state"} <= set(script.sheets)
+    settings, notes = tracker.load_settings(st)
+    assert script.sheets["Settings"][1][0] == "roles"  # template written for you to edit
+
+    # change the search from the Sheet, like you would on your phone
+    script.sheets["Settings"][1][1] = "Analytics Engineer"
+    settings, notes = tracker.load_settings(st)
+    assert settings.search["roles"] == ["Analytics Engineer"]
+
+    r = tracker.run_jobs(st, settings, get=fake_get, now=DEMO_NOW, send_push=False)
+    titles = {row[3] for row in script.sheets["Jobs"][1:]}
+    assert titles == {"Analytics Engineer", "Data Engineer, Payments Analytics"}  # both words present
+    tracker.run_emails(st, settings, fetch=fake_email_fetch, now=DEMO_NOW, send_push=False)
+    assert len(script.sheets["Applications"]) == 6  # header + 5
+    res = tracker.run_digest(st, settings, lambda *a: None, now=DEMO_NOW, sheet_url=st.url())
+    assert res["sent"] and st.url().endswith("FAKE")

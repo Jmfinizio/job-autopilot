@@ -5,4 +5,3 @@ venv/
 .env
 demo_state.json
 demo_digest.html
-*service-account*.json
