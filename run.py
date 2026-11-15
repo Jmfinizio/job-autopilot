@@ -44,6 +44,8 @@ def cmd_check() -> int:
     try:
         st = store_mod.open_store()
         line(True, f"connected to '{st.bridge.call('info').get('name')}' and set up tabs: {', '.join(store_mod.TABS)}")
+        _, notes = tracker.load_settings(st)
+        line(True, notes[0] if notes and "created" in notes[0] else "Settings tab is filled in")
     except Exception as e:
         line(False, f"{type(e).__name__}: {e}")
 
