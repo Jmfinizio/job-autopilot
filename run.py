@@ -94,7 +94,7 @@ def cmd_demo() -> int:
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="Job Autopilot")
-    p.add_argument("command", choices=["all", "jobs", "emails", "digest", "check", "demo"])
+    p.add_argument("command", choices=["all", "jobs", "emails", "digest", "check", "demo", "diagnose"])
     p.add_argument("--force", action="store_true", help="send the digest even if it's early or already sent")
     p.add_argument("--no-push", action="store_true", help="don't send phone notifications")
     args = p.parse_args(argv)
@@ -104,6 +104,18 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_check()
     if args.command == "demo":
         return cmd_demo()
+    if args.command == "diagnose":
+        from jobpilot import sources
+        from jobpilot.matching import funnel
+        st = store_mod.open_store()
+        settings, notes = tracker.load_settings(st)
+        print("Settings in use:", json.dumps(settings.search, indent=2))
+        for n in notes:
+            print("·", n)
+        raw, problems = sources.collect(settings)
+        print(json.dumps(funnel(raw, settings.search), indent=2))
+        print("problems:", problems)
+        return 0
 
     st = store_mod.open_store()
     settings, notes = tracker.load_settings(st)

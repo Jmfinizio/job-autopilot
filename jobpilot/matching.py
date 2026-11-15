@@ -114,3 +114,31 @@ def find_matches(jobs: list[Job], search: dict, already_seen: set[str],
     scored = [j for j in dedupe(scored)
               if j.key not in already_seen and j.score >= int(search.get("min_score", 40))]
     return sorted(scored, key=lambda j: (-j.score, j.company))
+
+
+def funnel(jobs: list[Job], search: dict, now: datetime | None = None) -> dict:
+    """How many postings survive each filter, with examples, to tune settings."""
+    now = now or datetime.now(timezone.utc)
+    stages = {"total": len(jobs), "title": 0, "not_excluded": 0, "location": 0, "recent": 0}
+    examples = {"title_hits": [], "dropped_location": [], "dropped_age": []}
+    max_age = int(search.get("max_age_days", 7))
+    for j in jobs:
+        if not title_matches(j.title, search.get("roles", [])):
+            continue
+        stages["title"] += 1
+        if any(b and _norm(b) in _norm(j.title) for b in search.get("exclude_titles", [])):
+            continue
+        stages["not_excluded"] += 1
+        if len(examples["title_hits"]) < 12:
+            examples["title_hits"].append(f"{j.company}: {j.title} [{j.location}]")
+        if not location_matches(j, search.get("locations", [])):
+            if len(examples["dropped_location"]) < 12:
+                examples["dropped_location"].append(f"{j.title} [{j.location}]")
+            continue
+        stages["location"] += 1
+        if j.posted and j.posted < now - timedelta(days=max_age):
+            if len(examples["dropped_age"]) < 12:
+                examples["dropped_age"].append(f"{j.title} [{j.location}] posted {j.posted:%Y-%m-%d}")
+            continue
+        stages["recent"] += 1
+    return {"stages": stages, "examples": examples}

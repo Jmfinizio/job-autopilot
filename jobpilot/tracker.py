@@ -30,8 +30,8 @@ def _norm(s: str) -> str:
 def load_settings(store) -> tuple[cfg.Settings, list[str]]:
     settings = cfg.load()
     table = store.table("Settings")
-    rows = table.raw_rows()
-    if len(rows) <= 1:  # first run: write the template so you have something to edit
+    rows = [r for r in table.raw_rows() if any(str(c).strip() for c in r)]
+    if len(rows) <= 1:  # first run (or tab cleared): write the template so you have something to edit
         table.replace_all(cfg.sheet_template_rows(settings))
         return settings, ["Settings tab created from config.yaml; edit it to change your search"]
     return cfg.apply_sheet_overrides(settings, rows[1:])
