@@ -123,12 +123,13 @@ function replace_(sh, rows) {
 
 // ---------------------------------------------------------------- Gmail (read-only + send to yourself)
 function gmailSearch_(query, limit) {
-  const me = Session.getEffectiveUser().getEmail().toLowerCase();
-  const threads = GmailApp.search(query || 'newer_than:3d', 0, Math.min(limit || 100, 200));
+  // "-from:me" skips emails you sent; no extra permissions needed
+  const q = (query || 'newer_than:3d') + ' -from:me';
+  const threads = GmailApp.search(q, 0, Math.min(limit || 100, 200));
   const messages = [];
   threads.forEach(function (t) {
     t.getMessages().forEach(function (m) {
-      if ((m.getFrom() || '').toLowerCase().indexOf(me) !== -1) return;  // skip emails you sent
+      if (m.isDraft && m.isDraft()) return;
       messages.push({
         id: m.getId(), threadId: t.getId(), date: m.getDate().toISOString(),
         from: m.getFrom(), subject: m.getSubject(), body: (m.getPlainBody() || '').slice(0, 6000)
@@ -139,7 +140,17 @@ function gmailSearch_(query, limit) {
 }
 
 function sendEmail_(req) {
-  const to = req.to || Session.getEffectiveUser().getEmail();
+  const to = req.to || myAddress_();
+  if (!to) return { error: "Couldn't find your email address. Add a DIGEST_TO secret in GitHub." };
   GmailApp.sendEmail(to, req.subject, req.text || '', { htmlBody: req.html || '', name: 'Job Autopilot' });
   return { ok: true, to: to };
+}
+
+// Your own address, read from your most recent sent email (avoids an extra permission)
+function myAddress_() {
+  const sent = GmailApp.search('in:sent', 0, 1);
+  if (!sent.length) return '';
+  const from = sent[0].getMessages()[0].getFrom() || '';
+  const m = from.match(/<([^>]+)>/);
+  return (m ? m[1] : from).trim();
 }
