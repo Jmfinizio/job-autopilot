@@ -15,7 +15,7 @@ It runs on GitHub Actions in this **private** repo, so it works while your lapto
 Company boards ─┐                                         ┌─► 📱 push alerts (ntfy)
 Adzuna search ──┼─► score & filter ─┐                     │
                 │                   ├─► Apps Script ─► Sheet ┼─► ✉️  morning digest
-Gmail (IMAP) ───┴─► classify email ─┘   (in your Sheet)     │
+Gmail ──────────┴─► classify email ─┘   (in your Sheet)     │
                                                             └─► follow-up reminders
 ```
 
@@ -39,12 +39,10 @@ Gmail (IMAP) ───┴─► classify email ─┘   (in your Sheet)     │
 6. Copy the **Web app URL** (ends in `/exec`).
 
 > "Anyone" only means GitHub can reach the URL without a Google login. Every request must include your secret, or the script refuses it.
-> If you change `Code.gs` later, use **Deploy → Manage deployments → Edit → New version** so the URL stays the same.
+> If you change `Code.gs` later, use **Deploy → Manage deployments → ✏️ Edit → Version: New version → Deploy** so the URL stays the same.
 
-### 2. Gmail app password (for reading application emails and sending the digest)
-1. Make sure 2-Step Verification is on: [myaccount.google.com/security](https://myaccount.google.com/security).
-2. Create an app password at [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords) (name it "Job Autopilot"). Copy the 16 characters.
-3. Make sure IMAP is on: Gmail → Settings → See all settings → Forwarding and POP/IMAP → **Enable IMAP**.
+### 2. Gmail
+Nothing to set up. The Sheet script reads your application emails and sends your digest **as you**, so there are no passwords. The first deploy asks you to allow Gmail access; that permission only goes to your own script.
 
 ### 3. Phone notifications
 1. Install **ntfy** ([iOS](https://apps.apple.com/app/ntfy/id1625396347) / [Android](https://play.google.com/store/apps/details?id=io.heckel.ntfy)).
@@ -60,8 +58,6 @@ Repo → **Settings → Secrets and variables → Actions → New repository sec
 |---|---|
 | `SHEET_SCRIPT_URL` | the Web app URL from step 1.6 |
 | `SHEET_SCRIPT_SECRET` | the same secret you typed into `Code.gs` |
-| `GMAIL_ADDRESS` | your Gmail address |
-| `GMAIL_APP_PASSWORD` | the 16-character app password |
 | `NTFY_TOPIC` | your topic name |
 | `ADZUNA_APP_ID`, `ADZUNA_APP_KEY` | optional |
 
@@ -91,7 +87,7 @@ Alerts go out at `alert_score` and above; everything at `min_score` and above la
 pip install -r requirements.txt
 python run.py demo          # full run on sample data, no accounts needed → demo_digest.html
 python -m pytest tests -q   # 23 tests
-python run.py check         # with secrets set as environment variables
+python run.py check         # with SHEET_SCRIPT_URL / SHEET_SCRIPT_SECRET / NTFY_TOPIC set
 ```
 
 ## Limits

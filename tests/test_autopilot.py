@@ -156,9 +156,9 @@ def test_digest_once_per_day_and_followups(store):
 # ---------------------------------------------------------------- Apps Script bridge
 def test_pipeline_through_apps_script_bridge():
     from jobpilot.store import BridgeError, SheetStore
-    from tests.fakes import FakeAppsScript
+    from tests.fakes import FakeAppsScript, inbox_as_script_messages
 
-    script = FakeAppsScript()
+    script = FakeAppsScript(inbox=inbox_as_script_messages())
     with pytest.raises(BridgeError, match="unauthorized"):
         SheetStore("https://script.google.com/x/exec", "wrong", post=script)
 
@@ -175,7 +175,10 @@ def test_pipeline_through_apps_script_bridge():
     r = tracker.run_jobs(st, settings, get=fake_get, now=DEMO_NOW, send_push=False)
     titles = {row[3] for row in script.sheets["Jobs"][1:]}
     assert titles == {"Analytics Engineer", "Data Engineer, Payments Analytics"}  # both words present
-    tracker.run_emails(st, settings, fetch=fake_email_fetch, now=DEMO_NOW, send_push=False)
-    assert len(script.sheets["Applications"]) == 6  # header + 5
-    res = tracker.run_digest(st, settings, lambda *a: None, now=DEMO_NOW, sheet_url=st.url())
+    # Gmail is read through the script too: same 5 applications as the raw-email path
+    r = tracker.run_emails(st, settings, now=DEMO_NOW, send_push=False)
+    assert r["status_changes"] == 5 and len(script.sheets["Applications"]) == 6  # header + 5
+    assert tracker.run_emails(st, settings, now=DEMO_NOW, send_push=False)["emails_matched"] == 0
+    res = tracker.run_digest(st, settings, now=DEMO_NOW, sheet_url=st.url())
     assert res["sent"] and st.url().endswith("FAKE")
+    assert len(script.sent) == 1 and "Job digest" in script.sent[0]["subject"]

@@ -102,8 +102,9 @@ def fake_email_fetch(query, skip_ids):
 class FakeAppsScript:
     """Behaves like apps_script/Code.gs, in memory, so tests can drive SheetStore."""
 
-    def __init__(self, secret="s3cret"):
+    def __init__(self, secret="s3cret", inbox=None):
         self.secret, self.sheets, self.calls = secret, {"Sheet1": []}, 0
+        self.inbox, self.sent = inbox or [], []
 
     class _R:
         def __init__(self, data):
@@ -127,6 +128,11 @@ class FakeAppsScript:
             if self.sheets.get("Sheet1") == []:
                 del self.sheets["Sheet1"]
             return R({"ok": True})
+        if op == "gmail_search":
+            return R({"ok": True, "messages": list(self.inbox)})
+        if op == "send_email":
+            self.sent.append(req)
+            return R({"ok": True})
         if tab not in self.sheets:
             return R({"error": f"missing tab {tab}"})
         sh = self.sheets[tab]
@@ -142,3 +148,15 @@ class FakeAppsScript:
             self.sheets[tab] = [[str(v) for v in r] for r in req["rows"]]
             return R({"ok": True})
         return R({"error": "unknown op"})
+
+
+def inbox_as_script_messages():
+    """SAMPLE_EMAILS in the shape Code.gs returns from gmail_search."""
+    import email as _email
+    from email.utils import parsedate_to_datetime
+    out = []
+    for mid, raw in SAMPLE_EMAILS:
+        m = _email.message_from_bytes(raw)
+        out.append({"id": mid, "threadId": mid, "date": parsedate_to_datetime(m["Date"]).isoformat(),
+                    "from": m["From"], "subject": m["Subject"], "body": m.get_payload()})
+    return out

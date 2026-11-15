@@ -34,26 +34,26 @@ def cmd_check() -> int:
         print(("  ✓ " if good else "  ✗ ") + msg)
 
     print("Secrets")
-    for k in ("SHEET_SCRIPT_URL", "SHEET_SCRIPT_SECRET", "GMAIL_ADDRESS", "GMAIL_APP_PASSWORD", "NTFY_TOPIC"):
+    for k in ("SHEET_SCRIPT_URL", "SHEET_SCRIPT_SECRET", "NTFY_TOPIC"):
         line(bool(os.environ.get(k)), k)
     for k in ("ADZUNA_APP_ID", "ADZUNA_APP_KEY"):
         print(("  ✓ " if os.environ.get(k) else "  · ") + f"{k} (optional, enables broad search)")
 
     print("Google Sheet")
+    st = None
     try:
         st = store_mod.open_store()
         line(True, f"connected to '{st.bridge.call('info').get('name')}' and set up tabs: {', '.join(store_mod.TABS)}")
     except Exception as e:
         line(False, f"{type(e).__name__}: {e}")
 
-    print("Gmail")
-    try:
-        import imaplib
-        with imaplib.IMAP4_SSL("imap.gmail.com") as imap:
-            imap.login(os.environ["GMAIL_ADDRESS"], os.environ["GMAIL_APP_PASSWORD"])
-        line(True, "logged in with the app password")
-    except Exception as e:
-        line(False, f"{type(e).__name__}: {e}  (use an App Password, not your normal password)")
+    print("Gmail (through the Sheet script)")
+    if st:
+        try:
+            n = len(st.bridge.call("gmail_search", query="newer_than:7d", limit=5).get("messages", []))
+            line(True, f"can read your inbox ({n} recent messages seen)")
+        except Exception as e:
+            line(False, f"{e}  (redeploy Code.gs as a new version and approve the Gmail permission)")
 
     print("Phone push")
     from jobpilot import notify

@@ -1,5 +1,8 @@
 /**
- * Job Autopilot: Sheet bridge
+ * Job Autopilot: Sheet + Gmail bridge
+ *
+ * Writes to this Sheet, reads your application emails, and sends your digest,
+ * all as you, so no app passwords or Google Cloud setup are needed.
  *
  * Paste this whole file into your Google Sheet: Extensions -> Apps Script.
  * Then set SECRET below, click Deploy -> New deployment -> Web app,
@@ -39,6 +42,10 @@ function doPost(e) {
         return out_(update_(sheet_(ss, req.tab), req.row, req.values));
       case 'replace':
         return out_(replace_(sheet_(ss, req.tab), req.rows));
+      case 'gmail_search':
+        return out_(gmailSearch_(req.query, req.limit));
+      case 'send_email':
+        return out_(sendEmail_(req));
       default:
         return out_({ error: 'unknown op ' + req.op });
     }
@@ -112,4 +119,27 @@ function replace_(sh, rows) {
     sh.getRange(1, 1, 1, width).setFontWeight('bold');
   }
   return { ok: true };
+}
+
+// ---------------------------------------------------------------- Gmail (read-only + send to yourself)
+function gmailSearch_(query, limit) {
+  const me = Session.getEffectiveUser().getEmail().toLowerCase();
+  const threads = GmailApp.search(query || 'newer_than:3d', 0, Math.min(limit || 100, 200));
+  const messages = [];
+  threads.forEach(function (t) {
+    t.getMessages().forEach(function (m) {
+      if ((m.getFrom() || '').toLowerCase().indexOf(me) !== -1) return;  // skip emails you sent
+      messages.push({
+        id: m.getId(), threadId: t.getId(), date: m.getDate().toISOString(),
+        from: m.getFrom(), subject: m.getSubject(), body: (m.getPlainBody() || '').slice(0, 6000)
+      });
+    });
+  });
+  return { ok: true, messages: messages };   // nothing is marked read, moved, or deleted
+}
+
+function sendEmail_(req) {
+  const to = req.to || Session.getEffectiveUser().getEmail();
+  GmailApp.sendEmail(to, req.subject, req.text || '', { htmlBody: req.html || '', name: 'Job Autopilot' });
+  return { ok: true, to: to };
 }

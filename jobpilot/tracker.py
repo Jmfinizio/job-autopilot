@@ -172,8 +172,9 @@ def import_marked_jobs(store, settings: cfg.Settings, now: datetime | None = Non
 
 def run_emails(store, settings: cfg.Settings, fetch=None, *, now: datetime | None = None,
                send_push: bool = True) -> dict:
-    from . import gmail
-    fetch = fetch or gmail.fetch_events
+    if fetch is None:
+        from . import gmail
+        fetch = lambda q, skip: gmail.fetch_events(store.bridge, q, skip)
     done = {r["Value"] for r in _state(store, "email")}
     events = fetch(settings.tracker.get("gmail_query", "newer_than:3d"), done)
     changes = apply_events(store, events, settings, now=now, send_push=send_push)
@@ -216,7 +217,9 @@ def run_digest(store, settings: cfg.Settings, send=None, *, now: datetime | None
                                                         sheet_url, now.astimezone(ET))
     if settings.notify.get("digest", True):
         if send is None:
-            from .gmail import send_email as send
+            import os
+            from .gmail import send_email
+            send = lambda s_, h, t: send_email(store.bridge, s_, h, t, to=os.environ.get("DIGEST_TO"))
         send(subject, body_html, body_text)
     if follow and settings.notify.get("push", True):
         names = ", ".join(f["Company"] for f in follow[:4])
