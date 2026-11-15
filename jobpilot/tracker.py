@@ -27,7 +27,34 @@ def _norm(s: str) -> str:
 
 
 # ------------------------------------------------------------------ settings
+def load_resume(store) -> dict:
+    """Resume tab rows: text, skills, roles, file, updated. Skills are re-derived if missing."""
+    from .resume import find_skills
+    data = {}
+    for r in store.table("Resume").records():
+        k = (r.get("Field") or "").strip().lower()
+        if k:
+            data[k] = r.get("Value", "")
+    skills = [s.strip() for s in data.get("skills", "").split(",") if s.strip()]
+    if not skills and data.get("text"):
+        skills = find_skills(data["text"])
+    data["skill_list"] = skills
+    return data
+
+
 def load_settings(store) -> tuple[cfg.Settings, list[str]]:
+    settings, notes = _load_settings(store)
+    try:
+        resume = load_resume(store)
+    except Exception as e:  # never let a resume problem stop the job search
+        resume, notes = {}, notes + [f"Resume tab unreadable: {e}"]
+    if resume.get("skill_list"):
+        settings.raw.setdefault("search", {})["resume_skills"] = resume["skill_list"]
+        notes.append(f"Using {len(resume['skill_list'])} skills from your resume")
+    return settings, notes
+
+
+def _load_settings(store) -> tuple[cfg.Settings, list[str]]:
     settings = cfg.load()
     table = store.table("Settings")
     rows = [r for r in table.raw_rows() if any(str(c).strip() for c in r)]

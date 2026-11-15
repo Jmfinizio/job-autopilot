@@ -19,6 +19,21 @@ Gmail ──────────┴─► classify email ─┘   (in your S
                                                             └─► follow-up reminders
 ```
 
+## Dashboard
+
+In your Sheet, go to **Job Autopilot → Open dashboard** in the menu bar. Only people who can open the Sheet can see it.
+
+| Tab | What you can do |
+|---|---|
+| **Overview** | New jobs this week, strong matches, your application pipeline, follow-ups due, and a **Run now** button |
+| **Jobs** | Search and filter everything found. Set a job to **Applied** and it's added to Applications |
+| **Applications** | Change a status, add notes, or add an application by hand |
+| **Resume** | Upload a PDF or Word resume. It finds your skills (you can edit them) and suggests roles to add to your search |
+| **Settings** | Roles, locations, keywords, companies, and score thresholds, as a form |
+
+### Resume matching
+After you save a resume, every job gets up to **+20 points** for mentioning your skills (4 per skill), and its "Why" note lists which ones. Your resume is read in your browser and stored only in your Sheet's **Resume** tab.
+
 ## Your Google Sheet
 
 | Tab | What's in it |
@@ -32,15 +47,15 @@ Gmail ──────────┴─► classify email ─┘   (in your S
 
 ### 1. Google Sheet + its script (no Google Cloud needed)
 1. Create a blank Google Sheet (name it e.g. "Job Tracker").
-2. In the Sheet: **Extensions → Apps Script**. Delete the sample code and paste in everything from [`apps_script/Code.gs`](apps_script/Code.gs).
-3. On the `SECRET` line, replace `PASTE-A-LONG-RANDOM-SECRET-HERE` with a long random password (mash the keyboard; 30+ characters). Save (⌘S).
-4. **Deploy → New deployment →** gear icon **→ Web app**. Set **Execute as: Me** and **Who has access: Anyone**. Click **Deploy**.
-5. Google asks you to authorize: pick your account → **Advanced → Go to (project) (unsafe) → Allow**. This is your own script, so the "unsafe" warning just means Google hasn't reviewed it.
-   Then, in the editor's function dropdown (next to **Debug**), pick **`authorize`** and click **▶ Run** to approve Gmail access the same way. The web app can't show that prompt on its own.
-6. Copy the **Web app URL** (ends in `/exec`).
+2. In the Sheet: **Extensions → Apps Script**. Replace the sample code in `Code.gs` with everything from [`apps_script/Code.gs`](apps_script/Code.gs).
+3. On the `SECRET` line, replace `PASTE-A-LONG-RANDOM-SECRET-HERE` with a long random password (30+ characters). Save (⌘S).
+4. Click **＋ next to Files → HTML**, name it exactly **`Dashboard`**, and replace its contents with [`apps_script/Dashboard.html`](apps_script/Dashboard.html). Save.
+5. In the function dropdown next to **Debug**, pick **`authorize`** and click **▶ Run**. Approve: pick your account → **Advanced → Go to (project) (unsafe) → Allow**. It's your own script; "unsafe" only means Google hasn't reviewed it.
+6. **Deploy → New deployment →** gear icon **→ Web app**. Set **Execute as: Me** and **Who has access: Anyone**. Click **Deploy** and copy the **Web app URL** (ends in `/exec`).
+7. Reload the Sheet. A **Job Autopilot** menu appears in the menu bar.
 
 > "Anyone" only means GitHub can reach the URL without a Google login. Every request must include your secret, or the script refuses it.
-> If you change `Code.gs` later, use **Deploy → Manage deployments → ✏️ Edit → Version: New version → Deploy** so the URL stays the same.
+> **Updating the script later:** paste the new files, put your secret back on the `SECRET` line, run `authorize` again, then **Deploy → Manage deployments → ✏️ → Version: New version → Deploy** (the URL stays the same).
 
 ### 2. Gmail
 Nothing to set up. The Sheet script reads your application emails and sends your digest **as you**, so there are no passwords. The first deploy asks you to allow Gmail access; that permission only goes to your own script.
@@ -76,6 +91,8 @@ Edit the **Settings** tab in the sheet (it wins over `config.yaml`):
 ## How scoring works
 A posting only counts if its **title** matches a role, its **location** matches (or it's remote and you listed Remote), it isn't excluded, and it's newer than `max_age_days`. Then it starts at 50 and:
 
+- **+4 per resume skill** the posting mentions, up to +20 (once you've uploaded a resume)
+
 - **+10** for an exact role phrase in the title
 - **+10** for an early-career title (Associate, Junior, I), or **−15** for a senior one (Senior, Lead, Staff)
 - **+5 per keyword** you care about (Python, SQL, Azure, …), up to +25
@@ -87,7 +104,8 @@ Alerts go out at `alert_score` and above; everything at `min_score` and above la
 ```bash
 pip install -r requirements.txt
 python run.py demo          # full run on sample data, no accounts needed → demo_digest.html
-python -m pytest tests -q   # 23 tests
+python -m pytest tests -q   # 26 tests
+python tools/build_dashboard.py   # after editing dashboard.src.html or skills.json
 python run.py check         # with SHEET_SCRIPT_URL / SHEET_SCRIPT_SECRET / NTFY_TOPIC set
 ```
 

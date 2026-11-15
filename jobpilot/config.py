@@ -105,7 +105,7 @@ def sheet_template_rows(settings: Settings) -> list[list[str]]:
         ["locations", j(s.get("locations", [])), "Cities or 'Remote' (comma-separated)"],
         ["exclude_titles", j(s.get("exclude_titles", [])), "Skip titles with these words"],
         ["boost_keywords", j(s.get("boost_keywords", [])), "Extra points if a posting mentions these"],
-        ["max_age_days", j(s.get("max_age_days", 7)), "Only jobs posted in the last N days"],
+        ["max_age_days", j(s.get("max_age_days", 30)), "Only jobs posted in the last N days"],
         ["alert_score", j(s.get("alert_score", 75)), "Score that triggers an instant phone alert"],
         ["min_score", j(s.get("min_score", 40)), "Lowest score saved to the sheet"],
         ["greenhouse_companies", j(c.get("greenhouse", [])), "Greenhouse board tokens to watch"],

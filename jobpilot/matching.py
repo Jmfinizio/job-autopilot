@@ -31,7 +31,7 @@ def title_matches(title: str, roles: list[str]) -> str | None:
     # loose match: all words of the role appear (handles "Engineer, Data Platform")
     for role in roles:
         words = [w for w in _norm(role).split() if len(w) > 2]
-        if words and all(re.search(rf"\b{re.escape(w)}", t) for w in words):
+        if words and all(re.search(rf"\b{re.escape(w)}\b", t) for w in words):
             return role
     return None
 
@@ -85,6 +85,14 @@ def score_job(job: Job, search: dict, now: datetime | None = None) -> Job | None
         add = min(25, 5 * len(hits))
         score += add
         reasons.append(f"mentions {', '.join(hits[:5])} (+{add})")
+
+    resume_skills = search.get("resume_skills") or []
+    if resume_skills:
+        from .resume import resume_match
+        pts, matched = resume_match(job.title + " " + job.description, resume_skills)
+        if pts:
+            score += pts
+            reasons.append(f"matches your resume: {', '.join(matched[:6])} (+{pts})")
 
     if job.posted:
         age_days = (now - job.posted).total_seconds() / 86400

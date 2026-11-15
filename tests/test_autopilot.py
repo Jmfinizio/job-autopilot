@@ -182,3 +182,36 @@ def test_pipeline_through_apps_script_bridge():
     res = tracker.run_digest(st, settings, now=DEMO_NOW, sheet_url=st.url())
     assert res["sent"] and st.url().endswith("FAKE")
     assert len(script.sent) == 1 and "Job digest" in script.sent[0]["subject"]
+
+
+# ---------------------------------------------------------------- resume
+def test_resume_skills_and_roles():
+    from jobpilot.resume import find_skills, resume_match, suggest_roles
+    text = ("Senior Associate Data Engineer. Built Databricks and Azure Data Factory ETL pipelines in "
+            "Python and SQL; Power BI dashboards; PyTorch models. Languages: Python, SQL, R, Rust.")
+    skills = find_skills(text)
+    for s in ["Python", "SQL", "Databricks", "Azure", "Azure Data Factory", "ETL", "Power BI", "PyTorch", "R", "Rust"]:
+        assert s in skills, s
+    assert "Data Engineer" == suggest_roles(skills, text)[0]
+    pts, matched = resume_match("We use Python, Spark and Databricks to build pipelines", skills)
+    assert pts == 4 * len(matched) and {"Python", "Databricks", "ETL"} <= set(matched)
+    assert find_skills("I like rust-colored jackets and Go to Rome")  # sanity: no crash
+    assert "Go" not in find_skills("Go to the store")  # only 'golang' counts
+
+
+def test_whole_word_titles():
+    assert title_matches("AI Research Scientist - Datadog", ["Data Scientist"]) is None
+    assert title_matches("Engineer, Data Platform", ["Data Engineer"])
+
+
+def test_resume_boosts_score(tmp_path):
+    st = LocalStore(tmp_path / "s.json")
+    settings, _ = tracker.load_settings(st)
+    st.table("Resume").append([{"Field": "skills", "Value": "Python, SQL, Spark, Databricks"}])
+    settings2, notes = tracker.load_settings(st)
+    assert settings2.search["resume_skills"] == ["Python", "SQL", "Spark", "Databricks"]
+    assert any("resume" in n for n in notes)
+    j = job("Data Engineer", desc="Python, Spark and Databricks")
+    plain = score_job(job("Data Engineer", desc="Python, Spark and Databricks"), SEARCH, DEMO_NOW)
+    boosted = score_job(j, settings2.search | {"locations": ["Boston"]}, DEMO_NOW)
+    assert boosted.score >= plain.score and any("matches your resume" in r for r in boosted.reasons)

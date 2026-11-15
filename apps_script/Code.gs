@@ -161,4 +161,153 @@ function myAddress_() {
  */
 function authorize() {
   GmailApp.getInboxUnreadCount();
+  // also approves the optional "Run now" button (talks to GitHub)
+  UrlFetchApp.getRequest('https://api.github.com');
+}
+
+// =================================================================== Dashboard (inside the Sheet)
+// Adds a "Job Autopilot" menu to the Sheet. Only people who can open this Sheet can see it.
+
+function onOpen() {
+  SpreadsheetApp.getUi()
+    .createMenu('Job Autopilot')
+    .addItem('Open dashboard', 'openDashboard')
+    .addToUi();
+}
+
+function openDashboard() {
+  const html = HtmlService.createHtmlOutputFromFile('Dashboard').setWidth(1240).setHeight(820);
+  SpreadsheetApp.getUi().showModelessDialog(html, 'Job Autopilot');
+}
+
+function tableRecords_(name) {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
+  if (!sh || sh.getLastRow() < 1) return [];
+  const values = sh.getDataRange().getDisplayValues();
+  const header = values[0];
+  return values.slice(1)
+    .map(function (row, i) {
+      const o = { _row: i + 2 };
+      header.forEach(function (h, j) { o[h] = row[j]; });
+      return o;
+    })
+    .filter(function (o) { return header.some(function (h) { return String(o[h] || '').trim(); }); });
+}
+
+function getDashboardData() {
+  const props = PropertiesService.getScriptProperties();
+  const state = tableRecords_('_state');
+  const lastRun = state.reduce(function (m, r) { return r.When > m ? r.When : m; }, '');
+  const resume = {};
+  tableRecords_('Resume').forEach(function (r) { resume[String(r.Field).toLowerCase()] = r.Value; });
+  return {
+    jobs: tableRecords_('Jobs'),
+    apps: tableRecords_('Applications'),
+    settings: tableRecords_('Settings'),
+    resume: { file: resume.file || '', updated: resume.updated || '', skills: resume.skills || '',
+              roles: resume.roles || '', chars: (resume.text || '').length },
+    lastRun: lastRun,
+    runNow: Boolean(props.getProperty('GITHUB_TOKEN') && props.getProperty('GITHUB_REPO')),
+    repo: props.getProperty('GITHUB_REPO') || '',
+    sheetUrl: SpreadsheetApp.getActiveSpreadsheet().getUrl()
+  };
+}
+
+function findRow_(sh, colName, value) {
+  const values = sh.getDataRange().getDisplayValues();
+  const col = values[0].indexOf(colName);
+  for (let i = 1; i < values.length; i++) if (values[i][col] === value) return { row: i + 1, header: values[0] };
+  return null;
+}
+
+function setCell_(sh, row, header, colName, value) {
+  const c = header.indexOf(colName);
+  if (c >= 0) sh.getRange(row, c + 1).setNumberFormat('@').setValue(value);
+}
+
+function saveSettings(pairs) {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Settings');
+  pairs.forEach(function (p) {
+    const hit = findRow_(sh, 'Setting', p[0]);
+    if (hit) setCell_(sh, hit.row, hit.header, 'Value', p[1]);
+    else sh.appendRow([p[0], p[1], '']);
+  });
+  return { ok: true };
+}
+
+function saveResume(r) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName('Resume');
+  if (!sh) { sh = ss.insertSheet('Resume'); sh.getRange(1, 1, 1, 2).setValues([['Field', 'Value']]).setFontWeight('bold'); }
+  sh.getRange(2, 1, Math.max(sh.getMaxRows() - 1, 1), 2).clearContent();
+  const rows = [
+    ['file', r.file || ''],
+    ['updated', Utilities.formatDate(new Date(), 'America/New_York', 'yyyy-MM-dd HH:mm')],
+    ['skills', (r.skills || []).join(', ')],
+    ['roles', (r.roles || []).join(', ')],
+    ['text', String(r.text || '').slice(0, 45000)]
+  ];
+  sh.getRange(2, 1, rows.length, 2).setNumberFormat('@').setValues(rows);
+  if (r.addRoles && r.addRoles.length) {
+    const st = ss.getSheetByName('Settings');
+    const hit = findRow_(st, 'Setting', 'roles');
+    const current = hit ? String(st.getRange(hit.row, hit.header.indexOf('Value') + 1).getValue()) : '';
+    const merged = current.split(',').map(function (s) { return s.trim(); }).filter(String);
+    r.addRoles.forEach(function (x) { if (merged.indexOf(x) < 0) merged.push(x); });
+    saveSettings([['roles', merged.join(', ')]]);
+  }
+  return { ok: true };
+}
+
+function updateJobStatus(jobId, status) {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Jobs');
+  const hit = findRow_(sh, 'Job ID', jobId);
+  if (!hit) throw new Error('Job not found');
+  setCell_(sh, hit.row, hit.header, 'Status', status);
+  return { ok: true };
+}
+
+function updateApplication(key, fields) {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Applications');
+  const hit = findRow_(sh, 'Key', key);
+  if (!hit) throw new Error('Application not found');
+  Object.keys(fields).forEach(function (k) { setCell_(sh, hit.row, hit.header, k, fields[k]); });
+  if (fields.Status) setCell_(sh, hit.row, hit.header, 'Last Update',
+    Utilities.formatDate(new Date(), 'America/New_York', 'yyyy-MM-dd'));
+  return { ok: true };
+}
+
+function addApplication(app) {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Applications');
+  const today = Utilities.formatDate(new Date(), 'America/New_York', 'yyyy-MM-dd');
+  const follow = Utilities.formatDate(new Date(Date.now() + 10 * 864e5), 'America/New_York', 'yyyy-MM-dd');
+  const key = (app.company + '|' + app.role).toLowerCase().replace(/[^a-z0-9|]+/g, ' ').trim();
+  const header = sh.getRange(1, 1, 1, sh.getLastColumn()).getDisplayValues()[0];
+  const row = header.map(function (h) {
+    return ({ Company: app.company, Role: app.role, Status: app.status || 'Applied', Applied: today,
+              'Last Update': today, 'Follow Up By': follow, Notes: app.notes || '', Key: key })[h] || '';
+  });
+  sh.getRange(sh.getLastRow() + 1, 1, 1, row.length).setNumberFormat('@').setValues([row]);
+  return { ok: true };
+}
+
+// ---- optional "Run now" button: triggers the GitHub workflow
+function saveGithub(repo, token) {
+  const props = PropertiesService.getScriptProperties();
+  if (repo) props.setProperty('GITHUB_REPO', repo.trim());
+  if (token) props.setProperty('GITHUB_TOKEN', token.trim());
+  return { ok: true };
+}
+
+function runNow(command) {
+  const props = PropertiesService.getScriptProperties();
+  const repo = props.getProperty('GITHUB_REPO'), token = props.getProperty('GITHUB_TOKEN');
+  if (!repo || !token) throw new Error('Set up "Run now" in Settings first');
+  const res = UrlFetchApp.fetch('https://api.github.com/repos/' + repo + '/actions/workflows/autopilot.yml/dispatches', {
+    method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+    headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json' },
+    payload: JSON.stringify({ ref: 'main', inputs: { command: command || 'all', force: false } })
+  });
+  if (res.getResponseCode() >= 300) throw new Error('GitHub said ' + res.getResponseCode() + ': ' + res.getContentText().slice(0, 200));
+  return { ok: true };
 }

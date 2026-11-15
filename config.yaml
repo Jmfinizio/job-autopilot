@@ -15,7 +15,7 @@ search:
   # Bonus points when the posting mentions these (title or description).
   boost_keywords: ["Python", "SQL", "Azure", "Databricks", "Spark", "automation", "Power BI"]
   # Only look at jobs posted in the last N days.
-  max_age_days: 7
+  max_age_days: 30
   # Score (0-100) needed to send a phone alert right away. Everything above
   # min_score still goes in the Sheet and the daily digest.
   alert_score: 75

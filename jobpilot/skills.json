@@ -1,0 +1,369 @@
+{
+ "skills": {
+  "Python": [
+   "python"
+  ],
+  "SQL": [
+   "sql",
+   "t-sql",
+   "tsql",
+   "pl/sql"
+  ],
+  "R": [
+   "\\br\\b(?= (programming|language|studio)|,)",
+   "rstudio"
+  ],
+  "Java": [
+   "java"
+  ],
+  "Scala": [
+   "scala"
+  ],
+  "JavaScript": [
+   "javascript",
+   "js"
+  ],
+  "TypeScript": [
+   "typescript"
+  ],
+  "Rust": [
+   "rust"
+  ],
+  "Go": [
+   "golang"
+  ],
+  "C++": [
+   "c\\+\\+"
+  ],
+  "C#": [
+   "c#"
+  ],
+  "Bash": [
+   "bash",
+   "shell scripting"
+  ],
+  "Spark": [
+   "spark",
+   "pyspark"
+  ],
+  "Databricks": [
+   "databricks"
+  ],
+  "Snowflake": [
+   "snowflake"
+  ],
+  "dbt": [
+   "dbt"
+  ],
+  "Airflow": [
+   "airflow"
+  ],
+  "Kafka": [
+   "kafka"
+  ],
+  "Hadoop": [
+   "hadoop",
+   "hive"
+  ],
+  "Flink": [
+   "flink"
+  ],
+  "Azure": [
+   "azure"
+  ],
+  "Azure Data Factory": [
+   "azure data factory",
+   "adf"
+  ],
+  "Synapse": [
+   "synapse"
+  ],
+  "Event Hubs": [
+   "event hubs?",
+   "eventhub"
+  ],
+  "Microsoft Fabric": [
+   "microsoft fabric",
+   "fabric"
+  ],
+  "AWS": [
+   "aws",
+   "amazon web services"
+  ],
+  "S3": [
+   "s3"
+  ],
+  "Redshift": [
+   "redshift"
+  ],
+  "Glue": [
+   "aws glue"
+  ],
+  "Lambda": [
+   "lambda"
+  ],
+  "GCP": [
+   "gcp",
+   "google cloud"
+  ],
+  "BigQuery": [
+   "bigquery"
+  ],
+  "Docker": [
+   "docker"
+  ],
+  "Kubernetes": [
+   "kubernetes",
+   "k8s"
+  ],
+  "Terraform": [
+   "terraform"
+  ],
+  "Git": [
+   "git",
+   "github"
+  ],
+  "CI/CD": [
+   "ci/cd",
+   "github actions",
+   "jenkins"
+  ],
+  "Power BI": [
+   "power bi",
+   "powerbi",
+   "dax"
+  ],
+  "Tableau": [
+   "tableau"
+  ],
+  "Looker": [
+   "looker"
+  ],
+  "Excel": [
+   "excel",
+   "vba"
+  ],
+  "Alteryx": [
+   "alteryx"
+  ],
+  "Pandas": [
+   "pandas"
+  ],
+  "NumPy": [
+   "numpy"
+  ],
+  "scikit-learn": [
+   "scikit-learn",
+   "sklearn"
+  ],
+  "PyTorch": [
+   "pytorch"
+  ],
+  "TensorFlow": [
+   "tensorflow",
+   "keras"
+  ],
+  "XGBoost": [
+   "xgboost"
+  ],
+  "Machine Learning": [
+   "machine learning",
+   "ml models?"
+  ],
+  "Deep Learning": [
+   "deep learning",
+   "neural networks?"
+  ],
+  "NLP": [
+   "nlp",
+   "natural language processing"
+  ],
+  "Computer Vision": [
+   "computer vision",
+   "yolo",
+   "opencv"
+  ],
+  "LLMs": [
+   "llms?",
+   "large language models?",
+   "generative ai",
+   "genai"
+  ],
+  "Reinforcement Learning": [
+   "reinforcement learning"
+  ],
+  "Statistics": [
+   "statistics",
+   "statistical",
+   "hypothesis testing",
+   "regression"
+  ],
+  "A/B Testing": [
+   "a/b test(ing)?",
+   "experimentation"
+  ],
+  "Time Series": [
+   "time series",
+   "forecasting"
+  ],
+  "ETL": [
+   "etl",
+   "elt",
+   "data pipelines?",
+   "pipelines?"
+  ],
+  "Data Modeling": [
+   "data model(l)?ing",
+   "star schema",
+   "dimensional model(l)?ing"
+  ],
+  "Data Warehousing": [
+   "data warehous(e|ing)",
+   "lakehouse",
+   "medallion"
+  ],
+  "Streaming": [
+   "streaming",
+   "real-time",
+   "stream analytics"
+  ],
+  "APIs": [
+   "rest apis?",
+   "apis?",
+   "fastapi",
+   "flask"
+  ],
+  "Automation": [
+   "automation",
+   "automated",
+   "automating"
+  ],
+  "Dashboards": [
+   "dashboards?",
+   "reporting"
+  ],
+  "PostgreSQL": [
+   "postgres(ql)?"
+  ],
+  "MySQL": [
+   "mysql"
+  ],
+  "MongoDB": [
+   "mongodb"
+  ],
+  "Spark SQL": [
+   "spark sql"
+  ],
+  "Linux": [
+   "linux"
+  ],
+  "Agile": [
+   "agile",
+   "scrum"
+  ],
+  "Swift": [
+   "swift",
+   "swiftui"
+  ],
+  "Data Quality": [
+   "data quality",
+   "data validation",
+   "great expectations"
+  ]
+ },
+ "roles": [
+  [
+   "Data Engineer",
+   [
+    "Spark",
+    "Databricks",
+    "ETL",
+    "Airflow",
+    "Kafka",
+    "Azure Data Factory",
+    "Synapse",
+    "Snowflake",
+    "Data Warehousing",
+    "Streaming",
+    "Data Modeling"
+   ]
+  ],
+  [
+   "Analytics Engineer",
+   [
+    "dbt",
+    "SQL",
+    "Data Modeling",
+    "Snowflake",
+    "Looker",
+    "Data Warehousing"
+   ]
+  ],
+  [
+   "BI Engineer",
+   [
+    "Power BI",
+    "Tableau",
+    "Looker",
+    "Dashboards",
+    "Microsoft Fabric",
+    "Excel"
+   ]
+  ],
+  [
+   "Data Analyst",
+   [
+    "SQL",
+    "Excel",
+    "Tableau",
+    "Power BI",
+    "Statistics",
+    "Dashboards"
+   ]
+  ],
+  [
+   "Data Scientist",
+   [
+    "Machine Learning",
+    "Statistics",
+    "scikit-learn",
+    "XGBoost",
+    "A/B Testing",
+    "Pandas",
+    "Time Series"
+   ]
+  ],
+  [
+   "Machine Learning Engineer",
+   [
+    "PyTorch",
+    "TensorFlow",
+    "Deep Learning",
+    "Machine Learning",
+    "Docker",
+    "Kubernetes",
+    "LLMs"
+   ]
+  ],
+  [
+   "Automation Engineer",
+   [
+    "Automation",
+    "Alteryx",
+    "APIs",
+    "Python",
+    "CI/CD"
+   ]
+  ],
+  [
+   "Quantitative Developer",
+   [
+    "Reinforcement Learning",
+    "Time Series",
+    "C++",
+    "Python",
+    "Statistics"
+   ]
+  ]
+ ]
+}

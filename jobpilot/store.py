@@ -17,8 +17,10 @@ JOB_COLS = ["Found", "Score", "Company", "Title", "Location", "Remote", "Link", 
 APP_COLS = ["Company", "Role", "Status", "Applied", "Last Update", "Follow Up By", "Last Email", "Notes", "Key"]
 STATE_COLS = ["Kind", "Value", "When"]
 SETTINGS_COLS = ["Setting", "Value", "What it does"]
+RESUME_COLS = ["Field", "Value"]
 
-TABS = {"Jobs": JOB_COLS, "Applications": APP_COLS, "_state": STATE_COLS, "Settings": SETTINGS_COLS}
+TABS = {"Jobs": JOB_COLS, "Applications": APP_COLS, "_state": STATE_COLS, "Settings": SETTINGS_COLS,
+        "Resume": RESUME_COLS}
 
 
 class Table:
